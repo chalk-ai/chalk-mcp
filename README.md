@@ -15,14 +15,40 @@ This MCP server exposes two tools for working with Chalk projects:
 
 ## Installation
 
+Build the MCP server binary:
+
 ```bash
-go mod download
 go build
 ```
 
 ## Usage
 
 The server runs in stdio mode and expects a Chalk project directory containing either a `chalk.yml` or `chalk.yaml` configuration file.
+
+### Setup
+
+Note the absolute path to your built binary (e.g., `/path/to/chalk-mcp/chalk-mcp`)
+
+### MCP Configuration
+
+#### Claude Code CLI
+```bash
+claude mcp add-json chalk-mcp '{
+  "command": "/path/to/chalk-mcp/chalk-mcp"
+}'
+```
+
+#### Cursor
+For Cursor, open `~/.cursor/mcp.json` and add:
+```json
+{
+   "mcpServers": {
+      "chalk-mcp": {
+         "command": "/path/to/chalk-mcp/chalk-mcp"
+      }
+   }
+}
+```
 
 ### Available Tools
 
