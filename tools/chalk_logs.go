@@ -36,12 +36,12 @@ func ChalkLogsHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 
 	cmd, err := utils.GetChalkCommand(projectRepository, "logs", "--query", query, "--json")
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare chalk command: %w", err)
+		return nil, fmt.Errorf("preparing chalk command: %w", err)
 	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run chalk logs command: %w; output: %s", err, out)
+		return nil, fmt.Errorf("running chalk logs command: %w; output: %s", err, out)
 	}
 
 	return mcp.NewToolResultText(string(out)), nil

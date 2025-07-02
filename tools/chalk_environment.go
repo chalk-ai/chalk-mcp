@@ -53,24 +53,24 @@ func ChalkEnvironmentHandler(ctx context.Context, request mcp.CallToolRequest) (
 
 		cmd, err := utils.GetChalkCommand(projectRepository, "environment", environment)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to prepare chalk command")
+			return nil, errors.Wrap(err, "preparing chalk command")
 		}
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to run chalk command; stdout: %s", out)
+			return nil, errors.Wrapf(err, "running chalk command; stdout: %s", out)
 		}
 
 		return mcp.NewToolResultText(string(out)), nil
 	case string(ChalkEnvironmentOperationGet):
 		cmd, err := utils.GetChalkCommand(projectRepository, "environment", "--json")
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to prepare chalk command")
+			return nil, errors.Wrap(err, "preparing chalk command")
 		}
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to run chalk command; stdout: %s", out)
+			return nil, errors.Wrapf(err, "running chalk command; stdout: %s", out)
 		}
 
 		return mcp.NewToolResultText(string(out)), nil

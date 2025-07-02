@@ -16,6 +16,8 @@ func main() {
 	s.AddTool(tools.NewChalkConfigTool(), tools.ChalkConfigHandler)
 	s.AddTool(tools.NewChalkFeaturesTool(), tools.ChalkFeaturesHandler)
 	s.AddTool(tools.NewChalkLogsTool(), tools.ChalkLogsHandler)
+	s.AddTool(tools.NewChalkEnvironmentTool(), tools.ChalkEnvironmentHandler)
+	s.AddTool(tools.NewChalkApplyTool(), tools.ChalkApplyHandler)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("Server error: %v\n", err)

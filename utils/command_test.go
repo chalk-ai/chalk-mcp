@@ -58,7 +58,7 @@ func TestValidateChalkProject(t *testing.T) {
 		{
 			name:         "missing project repository",
 			createTmpDir: false,
-			tmpFiles:     []string{""},
+			tmpFiles:     []string{},
 			expectedErr:  errors.New("project_repository must exist"),
 		},
 		{
