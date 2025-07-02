@@ -23,7 +23,7 @@ func main() {
 		mcp.WithDescription("Get the list of features from a chalk project"),
 		mcp.WithString("project_repository",
 			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk to fetch features for. Should contain a chalk.yml file."),
+			mcp.Description("Path to the root of the Chalk project on disk to fetch features for. Should contain a chalk.yml or chalk.yaml file."),
 		),
 	)
 
@@ -31,7 +31,7 @@ func main() {
 		mcp.WithDescription("Get the chalk config from a chalk project"),
 		mcp.WithString("project_repository",
 			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk. Should contain a chalk.yml file."),
+			mcp.Description("Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."),
 		),
 	)
 
@@ -60,9 +60,13 @@ func helloHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallTo
 		return nil, errors.New("project_repository must exist")
 	}
 
-	// must be a directory with a chalk.yml
-	if _, err := os.Stat(name + "/chalk.yml"); os.IsNotExist(err) {
-		return nil, errors.New("project_repository must contain a chalk.yml file")
+	// must be a directory with a chalk.yml or chalk.yaml
+	hasConfig, err := hasChalkConfig(name)
+	if err != nil {
+		return nil, fmt.Errorf("error checking for chalk config: %w", err)
+	}
+	if !hasConfig {
+		return nil, errors.New("project_repository must contain a chalk.yml or chalk.yaml file")
 	}
 
 	// run the 'chalk' program in the directory
@@ -109,9 +113,13 @@ func configHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallT
 		return nil, errors.New("project_repository must exist")
 	}
 
-	// must be a directory with a chalk.yml
-	if _, err := os.Stat(name + "/chalk.yml"); os.IsNotExist(err) {
-		return nil, errors.New("project_repository must contain a chalk.yml file")
+	// must be a directory with a chalk.yml or chalk.yaml
+	hasConfig, err := hasChalkConfig(name)
+	if err != nil {
+		return nil, fmt.Errorf("error checking for chalk config: %w", err)
+	}
+	if !hasConfig {
+		return nil, errors.New("project_repository must contain a chalk.yml or chalk.yaml file")
 	}
 
 	// run the 'chalk' program in the directory
@@ -142,6 +150,21 @@ func configHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallT
 	// parse the json output
 
 	return mcp.NewToolResultText(string(out)), nil
+}
+
+// hasChalkConfig checks if a directory contains either chalk.yml or chalk.yaml
+func hasChalkConfig(dir string) (bool, error) {
+	// Check for chalk.yml
+	if _, err := os.Stat(filepath.Join(dir, "chalk.yml")); err == nil {
+		return true, nil
+	}
+	
+	// Check for chalk.yaml
+	if _, err := os.Stat(filepath.Join(dir, "chalk.yaml")); err == nil {
+		return true, nil
+	}
+	
+	return false, nil
 }
 
 // findChalkBinary attempts to locate the chalk binary in common locations

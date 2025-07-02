@@ -12,20 +12,33 @@ import (
 )
 
 func TestChalkConfigHandler(t *testing.T) {
-	// Create a temporary directory for valid test case
-	validTmpDir, err := os.MkdirTemp("", "chalk-test-valid-*")
+	// Create a temporary directory for valid test case with chalk.yml
+	validTmpDirYml, err := os.MkdirTemp("", "chalk-test-valid-yml-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(validTmpDir)
+	defer os.RemoveAll(validTmpDirYml)
 
 	// Create chalk.yml in the valid temp directory
-	chalkYml := filepath.Join(validTmpDir, "chalk.yml")
+	chalkYml := filepath.Join(validTmpDirYml, "chalk.yml")
 	if err := os.WriteFile(chalkYml, []byte("config: test"), 0644); err != nil {
 		t.Fatalf("Failed to write chalk.yml: %v", err)
 	}
 
-	// Create a temporary directory for missing chalk.yml test case
+	// Create a temporary directory for valid test case with chalk.yaml
+	validTmpDirYaml, err := os.MkdirTemp("", "chalk-test-valid-yaml-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(validTmpDirYaml)
+
+	// Create chalk.yaml in the valid temp directory
+	chalkYaml := filepath.Join(validTmpDirYaml, "chalk.yaml")
+	if err := os.WriteFile(chalkYaml, []byte("config: test"), 0644); err != nil {
+		t.Fatalf("Failed to write chalk.yaml: %v", err)
+	}
+
+	// Create a temporary directory for missing chalk config test case
 	invalidTmpDir, err := os.MkdirTemp("", "chalk-test-invalid-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -38,8 +51,13 @@ func TestChalkConfigHandler(t *testing.T) {
 		expectedError     error
 	}{
 		{
-			name:              "Valid project repository",
-			projectRepository: validTmpDir,
+			name:              "Valid project repository with chalk.yml",
+			projectRepository: validTmpDirYml,
+			expectedError:     nil,
+		},
+		{
+			name:              "Valid project repository with chalk.yaml",
+			projectRepository: validTmpDirYaml,
 			expectedError:     nil,
 		},
 		{
@@ -48,9 +66,9 @@ func TestChalkConfigHandler(t *testing.T) {
 			expectedError:     errors.New("project_repository must exist"),
 		},
 		{
-			name:              "Missing chalk.yml",
+			name:              "Missing chalk config file",
 			projectRepository: invalidTmpDir,
-			expectedError:     errors.New("project_repository must contain a chalk.yml file"),
+			expectedError:     errors.New("project_repository must contain a chalk.yml or chalk.yaml file"),
 		},
 	}
 
