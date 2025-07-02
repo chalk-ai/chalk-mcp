@@ -8,6 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func main() {
@@ -65,11 +66,20 @@ func helloHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallTo
 	}
 
 	// run the 'chalk' program in the directory
+	chalkPath, err := findChalkBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find chalk binary: %w", err)
+	}
 
-	cmd := exec.Command("/Users/andrew/.chalk/bin/chalk-latest", "features", "--json")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	cmd := exec.Command(chalkPath, "features", "--json")
 	cmd.Dir = name
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME=/Users/andrew/")
+	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")
 	out, err := cmd.CombinedOutput()
 
 	// return the json output
@@ -105,11 +115,20 @@ func configHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallT
 	}
 
 	// run the 'chalk' program in the directory
+	chalkPath, err := findChalkBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find chalk binary: %w", err)
+	}
 
-	cmd := exec.Command("/Users/andrew/.chalk/bin/chalk-latest", "config", "--json")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	cmd := exec.Command(chalkPath, "config", "--json")
 	cmd.Dir = name
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME=/Users/andrew/")
+	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")
 
 	out, err := cmd.CombinedOutput()
 
@@ -123,4 +142,33 @@ func configHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallT
 	// parse the json output
 
 	return mcp.NewToolResultText(string(out)), nil
+}
+
+// findChalkBinary attempts to locate the chalk binary in common locations
+func findChalkBinary() (string, error) {
+	// First try to find chalk in PATH
+	if path, err := exec.LookPath("chalk"); err == nil {
+		return path, nil
+	}
+
+	// Try common locations for chalk
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	commonPaths := []string{
+		filepath.Join(homeDir, ".chalk", "bin", "chalk-latest"),
+		filepath.Join(homeDir, ".chalk", "bin", "chalk"),
+		"/usr/local/bin/chalk",
+		"/opt/chalk/bin/chalk",
+	}
+
+	for _, path := range commonPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", errors.New("chalk binary not found in PATH or common locations")
 }

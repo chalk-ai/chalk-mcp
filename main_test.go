@@ -5,54 +5,59 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
 func TestChalkConfigHandler(t *testing.T) {
+	// Create a temporary directory for valid test case
+	validTmpDir, err := os.MkdirTemp("", "chalk-test-valid-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(validTmpDir)
+
+	// Create chalk.yml in the valid temp directory
+	chalkYml := filepath.Join(validTmpDir, "chalk.yml")
+	if err := os.WriteFile(chalkYml, []byte("config: test"), 0644); err != nil {
+		t.Fatalf("Failed to write chalk.yml: %v", err)
+	}
+
+	// Create a temporary directory for missing chalk.yml test case
+	invalidTmpDir, err := os.MkdirTemp("", "chalk-test-invalid-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(invalidTmpDir)
+
 	tests := []struct {
 		name              string
 		projectRepository string
-		setup             func()
 		expectedError     error
 	}{
 		{
 			name:              "Valid project repository",
-			projectRepository: "/Users/andrew/chalk/fraud-template-staging",
-			setup: func() {
-				// Ensure the directory and chalk.yml exist
-				//os.MkdirAll("/Users/andrew/fraud-template-staging", 0755)
-				//os.WriteFile("/Users/andrew/fraud-template-staging/chalk.yml", []byte("config: test"), 0644)
-			},
-			expectedError: nil,
+			projectRepository: validTmpDir,
+			expectedError:     nil,
 		},
 		{
 			name:              "Missing project repository",
-			projectRepository: "/Users/andrew/nonexistent",
-			setup:             func() {}, // No setup, directory doesn't exist
+			projectRepository: "/tmp/nonexistent-chalk-test",
 			expectedError:     errors.New("project_repository must exist"),
 		},
 		{
 			name:              "Missing chalk.yml",
-			projectRepository: "/Users/andrew/fraud-template-staging",
-			setup: func() {
-				// Ensure the directory exists but no chalk.yml
-				os.MkdirAll("/Users/andrew/fraud-template-staging", 0755)
-				os.Remove("/Users/andrew/fraud-template-staging/chalk.yml")
-			},
-			expectedError: errors.New("project_repository must contain a chalk.yml file"),
+			projectRepository: invalidTmpDir,
+			expectedError:     errors.New("project_repository must contain a chalk.yml file"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
-
 			request := mcp.CallToolRequest{}
-
 			request.Params.Arguments = make(map[string]interface{})
-
 			request.Params.Arguments["project_repository"] = tt.projectRepository
 
 			c, err := configHandler(context.Background(), request)
