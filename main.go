@@ -1,197 +1,22 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"github.com/mark3labs/mcp-go/mcp"
+
+	"github.com/chalk-ai/chalk-mcp/tools"
 	"github.com/mark3labs/mcp-go/server"
-	"os"
-	"os/exec"
-	"path/filepath"
 )
 
 func main() {
-	// Create MCP server
 	s := server.NewMCPServer(
 		"Demo 🚀",
 		"1.0.0",
 	)
 
-	// Add tool
-	tool := mcp.NewTool("chalk_features",
-		mcp.WithDescription("Get the list of features from a chalk project"),
-		mcp.WithString("project_repository",
-			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk to fetch features for. Should contain a chalk.yml or chalk.yaml file."),
-		),
-	)
+	s.AddTool(tools.NewChalkConfigTool(), tools.ChalkConfigHandler)
+	s.AddTool(tools.NewChalkFeaturesTool(), tools.ChalkFeaturesHandler)
 
-	tool2 := mcp.NewTool("chalk_config",
-		mcp.WithDescription("Get the chalk config from a chalk project"),
-		mcp.WithString("project_repository",
-			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."),
-		),
-	)
-
-	// Add tool handler
-	s.AddTool(tool, helloHandler)
-	s.AddTool(tool2, configHandler)
-
-	// Start the stdio server
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("Server error: %v\n", err)
 	}
-}
-
-func helloHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name, ok := request.Params.Arguments["project_repository"].(string)
-	if !ok {
-		return nil, errors.New("project_repository must be a string")
-	}
-
-	if name == "" {
-
-	}
-
-	// must be a directory
-	if _, err := os.Stat(name); os.IsNotExist(err) {
-		return nil, errors.New("project_repository must exist")
-	}
-
-	// must be a directory with a chalk.yml or chalk.yaml
-	hasConfig, err := hasChalkConfig(name)
-	if err != nil {
-		return nil, fmt.Errorf("error checking for chalk config: %w", err)
-	}
-	if !hasConfig {
-		return nil, errors.New("project_repository must contain a chalk.yml or chalk.yaml file")
-	}
-
-	// run the 'chalk' program in the directory
-	chalkPath, err := findChalkBinary()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find chalk binary: %w", err)
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
-	cmd := exec.Command(chalkPath, "features", "--json")
-	cmd.Dir = name
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")
-	out, err := cmd.CombinedOutput()
-
-	// return the json output
-
-	if err != nil {
-
-		return nil, fmt.Errorf("failed to run chalk command: %w; stderr: %s", err, out)
-	}
-
-	// parse the json output
-
-	return mcp.NewToolResultText(string(out)), nil
-}
-
-func configHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	name, ok := request.Params.Arguments["project_repository"].(string)
-	if !ok {
-		return nil, errors.New("project_repository must be a string")
-	}
-
-	if name == "" {
-
-	}
-
-	// must be a directory
-	if _, err := os.Stat(name); os.IsNotExist(err) {
-		return nil, errors.New("project_repository must exist")
-	}
-
-	// must be a directory with a chalk.yml or chalk.yaml
-	hasConfig, err := hasChalkConfig(name)
-	if err != nil {
-		return nil, fmt.Errorf("error checking for chalk config: %w", err)
-	}
-	if !hasConfig {
-		return nil, errors.New("project_repository must contain a chalk.yml or chalk.yaml file")
-	}
-
-	// run the 'chalk' program in the directory
-	chalkPath, err := findChalkBinary()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find chalk binary: %w", err)
-	}
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
-	cmd := exec.Command(chalkPath, "config", "--json")
-	cmd.Dir = name
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")
-
-	out, err := cmd.CombinedOutput()
-
-	// return the json output
-
-	if err != nil {
-
-		return nil, fmt.Errorf("failed to run chalk command: %w; stderr: %s", err, out)
-	}
-
-	// parse the json output
-
-	return mcp.NewToolResultText(string(out)), nil
-}
-
-// hasChalkConfig checks if a directory contains either chalk.yml or chalk.yaml
-func hasChalkConfig(dir string) (bool, error) {
-	// Check for chalk.yml
-	if _, err := os.Stat(filepath.Join(dir, "chalk.yml")); err == nil {
-		return true, nil
-	}
-	
-	// Check for chalk.yaml
-	if _, err := os.Stat(filepath.Join(dir, "chalk.yaml")); err == nil {
-		return true, nil
-	}
-	
-	return false, nil
-}
-
-// findChalkBinary attempts to locate the chalk binary in common locations
-func findChalkBinary() (string, error) {
-	// First try to find chalk in PATH
-	if path, err := exec.LookPath("chalk"); err == nil {
-		return path, nil
-	}
-
-	// Try common locations for chalk
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	commonPaths := []string{
-		filepath.Join(homeDir, ".chalk", "bin", "chalk-latest"),
-		filepath.Join(homeDir, ".chalk", "bin", "chalk"),
-		"/usr/local/bin/chalk",
-		"/opt/chalk/bin/chalk",
-	}
-
-	for _, path := range commonPaths {
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-	}
-
-	return "", errors.New("chalk binary not found in PATH or common locations")
 }

@@ -1,4 +1,4 @@
-module github.com/chalk-ai/chalk-private/chalk-mcp
+module github.com/chalk-ai/chalk-mcp
 
 go 1.24.0
 
