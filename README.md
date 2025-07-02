@@ -11,7 +11,7 @@ This MCP server exposes two tools for working with Chalk projects:
 ## Requirements
 
 - Go 1.24.0+
-- Chalk binary installed on your system
+- [Chalk CLI](https://github.com/chalk-ai/cli) installed on your system
 
 ## Installation
 
@@ -69,7 +69,7 @@ Retrieves the configuration from a Chalk project.
 Run the test suite:
 
 ```bash
-go test
+go test ./...
 ```
 
 ## License

@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,14 +26,14 @@ func validateChalkProject(projectRepository string) error {
 
 	hasConfig := hasChalkConfig(projectRepository)
 	if !hasConfig {
-		return fmt.Errorf("project_repository must contain a chalk.yml or chalk.yaml file")
+		return errors.New("project_repository must contain a chalk.yml or chalk.yaml file")
 	}
 
 	return nil
 }
 
 // findChalkBinary attempts to locate the chalk binary in common locations
-func findChalkBinary() (string, error) {
+func findChalkBinary(checkCommonPaths bool) (string, error) {
 	if path, err := exec.LookPath("chalk"); err == nil {
 		return path, nil
 	}
@@ -50,21 +49,22 @@ func findChalkBinary() (string, error) {
 		"/opt/chalk/bin/chalk",
 	}
 
-	for _, path := range commonPaths {
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
+	if checkCommonPaths {
+		for _, path := range commonPaths {
+			if _, err := os.Stat(path); err == nil {
+				return path, nil
+			}
 		}
 	}
-
 	return "", errors.New("chalk binary not found in PATH or common locations")
 }
 
-func GetChalkCommand(projectRepository, name string, args ...string) (*exec.Cmd, error) {
+func GetChalkCommand(projectRepository string, args ...string) (*exec.Cmd, error) {
 	if err := validateChalkProject(projectRepository); err != nil {
 		return nil, err
 	}
 
-	chalkPath, err := findChalkBinary()
+	chalkPath, err := findChalkBinary(true)
 	if err != nil {
 		return nil, err
 	}

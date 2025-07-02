@@ -2,10 +2,9 @@ package tools
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/chalk-ai/chalk-mcp/utils"
+	"github.com/cockroachdb/errors"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -27,12 +26,12 @@ func ChalkFeaturesHandler(ctx context.Context, request mcp.CallToolRequest) (*mc
 
 	cmd, err := utils.GetChalkCommand(projectRepository, "features", "--json")
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare chalk command: %w", err)
+		return nil, errors.Wrap(err, "preparing chalk command")
 	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run chalk command: %w; stdout: %s", err, out)
+		return nil, errors.Wrapf(err, "running chalk command; stdout: %s", string(out))
 	}
 
 	return mcp.NewToolResultText(string(out)), nil
