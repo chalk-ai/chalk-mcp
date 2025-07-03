@@ -4,9 +4,12 @@ An MCP (Model Context Protocol) server that provides tools for interacting with 
 
 ## Overview
 
-This MCP server exposes two tools for working with Chalk projects:
+This MCP server exposes tools for working with Chalk projects:
 - `chalk_features` - Get the list of features from a Chalk project
 - `chalk_config` - Get the configuration from a Chalk project
+- `chalk_logs` - Search through Chalk logs using powerful filtering capabilities
+- `chalk_environment` - Set or get the Chalk environment for the current project
+- `chalk_apply` - Apply Chalk configurations with branch support
 
 ## Requirements
 
@@ -63,6 +66,31 @@ Retrieves the configuration from a Chalk project.
 
 **Parameters:**
 - `project_repository` (required): Path to the root of the Chalk project on disk
+
+#### `chalk_logs`
+Search through Chalk logs using powerful filtering capabilities.
+
+**Parameters:**
+- `query` (required): Query to search logs. Examples:
+  - `resolver:user_features`
+  - `component:engine message:error`
+  - `correlation_id:abc-123`
+- `project_repository` (required): Path to the root of the Chalk project on disk
+
+#### `chalk_environment`
+Set or get the Chalk environment for the current project.
+
+**Parameters:**
+- `project_repository` (required): Path to the root of the Chalk project on disk
+- `operation` (required): The operation to perform - either `"set"` or `"get"`
+- `environment` (optional): If doing a set operation, the environment to set for the current project. Can be an environment ID or name
+
+#### `chalk_apply`
+Apply Chalk configurations with branch and JSON output. Recommended workflow is to use the `chalk_environment` tool to set the environment, then use this tool to apply the configuration.
+
+**Parameters:**
+- `project_repository` (required): Path to the root of the Chalk project on disk
+- `branch_name` (optional): Name of the branch to deploy to. If not provided, defaults to the current git branch
 
 ## Testing
 
