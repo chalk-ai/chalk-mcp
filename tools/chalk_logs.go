@@ -34,7 +34,7 @@ func ChalkLogsHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		return nil, errors.New("query must be a string")
 	}
 
-	cmd, err := utils.GetChalkCommand(projectRepository, "logs", "--query", query, "--json")
+	cmd, err := utils.GetChalkCommand(projectRepository, "logs", "--query", query)
 	if err != nil {
 		return nil, fmt.Errorf("preparing chalk command: %w", err)
 	}

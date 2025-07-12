@@ -63,7 +63,7 @@ func ChalkEnvironmentHandler(ctx context.Context, request mcp.CallToolRequest) (
 
 		return mcp.NewToolResultText(string(out)), nil
 	case string(ChalkEnvironmentOperationGet):
-		cmd, err := utils.GetChalkCommand(projectRepository, "environment", "--json")
+		cmd, err := utils.GetChalkCommand(projectRepository, "environment")
 		if err != nil {
 			return nil, errors.Wrap(err, "preparing chalk command")
 		}

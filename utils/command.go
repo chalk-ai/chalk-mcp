@@ -74,9 +74,11 @@ func GetChalkCommand(projectRepository string, args ...string) (*exec.Cmd, error
 		return nil, err
 	}
 
-	cmd := exec.Command(chalkPath, args...)
+	cmd := exec.Command(chalkPath, append(args, "--json")...)
 	cmd.Dir = projectRepository
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")
+	cmd.Env = append(cmd.Env, "TERM=dumb")
+	cmd.Env = append(cmd.Env, "NO_COLOR=1")
 	return cmd, nil
 }
