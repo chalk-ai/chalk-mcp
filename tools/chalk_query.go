@@ -3,73 +3,76 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strings"
+	"reflect"
 
-	"github.com/chalk-ai/chalk-mcp/utils"
 	"github.com/cockroachdb/errors"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func NewChalkQueryTool() mcp.Tool {
-	return mcp.NewTool("chalk_query",
-		mcp.WithDescription("Query Chalk features using fully qualified feature names (FQNs). Supports input features, output features, and branch specification."),
-		mcp.WithString("project_repository",
-			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."),
-		),
-		mcp.WithObject("input_features",
-			mcp.Description("Map of fully qualified feature names (FQNs) to their values for the query. Each key-value pair becomes --in {key}={value}."),
-			mcp.AdditionalProperties(map[string]any{"type": "string"}),
-		),
-		mcp.WithArray("output_features",
-			mcp.Description("List of fully qualified feature names (FQNs) to use as outputs for the query."),
-			mcp.Items(map[string]any{"type": "string"}),
-		),
-		mcp.WithString("branch_name",
-			mcp.Description("Name of the branch to query against. If not provided, uses the mainline deployment."),
-		),
-	)
+type ChalkQueryParams struct {
+	ProjectRepository string            `json:"project_repository" mcp:"required,description=Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."`
+	InputFeatures     map[string]string `json:"input_features" mcp:"description=Map of fully qualified feature names (FQNs) to their values for the query. Each key-value pair becomes --in {key}={value}."`
+	OutputFeatures    []string          `json:"output_features" mcp:"description=List of fully qualified feature names (FQNs) to use as outputs for the query."`
+	BranchName        string            `json:"branch_name" mcp:"description=Name of the branch to query against. If not provided, uses the mainline deployment."`
 }
 
-func ChalkQueryHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	projectRepository, ok := request.Params.Arguments["project_repository"].(string)
+type ChalkQueryTool struct {
+	executor CommandExecutor
+}
+
+func NewChalkQueryTool(executor CommandExecutor) *ChalkQueryTool {
+	if executor == nil {
+		executor = &DefaultCommandExecutor{}
+	}
+	return &ChalkQueryTool{
+		executor: executor,
+	}
+}
+
+func (t *ChalkQueryTool) Name() string {
+	return "chalk_query"
+}
+
+func (t *ChalkQueryTool) Description() string {
+	return "Query Chalk features using fully qualified feature names (FQNs). Supports input features, output features, and branch specification."
+}
+
+func (t *ChalkQueryTool) ParamsType() reflect.Type {
+	return reflect.TypeOf(ChalkQueryParams{})
+}
+
+func (t *ChalkQueryTool) buildCommandArgs(params *ChalkQueryParams) []string {
+	args := []string{"query", "--grpc"}
+
+	for fqn, value := range params.InputFeatures {
+		args = append(args, "--in", fmt.Sprintf("%s=%v", fqn, value))
+	}
+
+	for _, feature := range params.OutputFeatures {
+		args = append(args, "--out", feature)
+	}
+
+	if params.BranchName != "" {
+		args = append(args, "--branch="+params.BranchName)
+	}
+
+	return args
+}
+
+func (t *ChalkQueryTool) Execute(ctx context.Context, args any) (*mcp.CallToolResult, error) {
+	params, ok := args.(*ChalkQueryParams)
 	if !ok {
-		return nil, errors.New("project_repository must be a string")
+		return nil, errors.New("invalid parameter type")
 	}
 
-	var args []string
-
-	if inputFeatures, ok := request.Params.Arguments["input_features"].(map[string]any); ok && len(inputFeatures) > 0 {
-		for fqn, rawValue := range inputFeatures {
-			args = append(args, "--in", fqn+"="+fmt.Sprintf("%v", rawValue))
-		}
-	}
-
-	if outputFeatures, ok := request.Params.Arguments["output_features"].([]any); ok && len(outputFeatures) > 0 {
-		for _, feature := range outputFeatures {
-			if featureStr, ok := feature.(string); ok && featureStr != "" {
-				args = append(args, "--out", featureStr)
-			}
-		}
-	}
-
-	if branchName, ok := request.Params.Arguments["branch_name"].(string); ok && branchName != "" {
-		args = append(args, "--branch="+branchName)
-	}
-
-	finalArgs := append([]string{"query", "--grpc"}, args...)
-
-	cmd, err := utils.GetChalkCommand(projectRepository, finalArgs...)
+	output, err := t.executor.Execute(
+		ctx,
+		params.ProjectRepository,
+		t.buildCommandArgs(params)...,
+	)
 	if err != nil {
-		return nil, errors.Wrap(err, "preparing chalk command")
+		return nil, errors.Wrapf(err, "running chalk command; output: %s", output)
 	}
 
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, errors.Wrapf(err, "running chalk command; stdout: %s", out)
-	}
-
-	finalArgsStr := strings.Join(finalArgs, " ")
-
-	return mcp.NewToolResultText(fmt.Sprintf("chalk command: %s\nstdout: %s", finalArgsStr, string(out))), nil
+	return mcp.NewToolResultText(string(output)), nil
 }

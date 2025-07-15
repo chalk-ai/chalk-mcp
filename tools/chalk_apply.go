@@ -32,7 +32,7 @@ func ChalkApplyHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.C
 		branchArg += "=" + branchName
 	}
 
-	cmd, err := utils.GetChalkCommand(projectRepository, "apply", branchArg)
+	cmd, err := utils.GetChalkCommand(ctx, projectRepository, "apply", branchArg)
 	if err != nil {
 		return nil, errors.Wrap(err, "preparing chalk command")
 	}

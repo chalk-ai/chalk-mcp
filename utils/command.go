@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -59,7 +60,7 @@ func findChalkBinary(checkCommonPaths bool) (string, error) {
 	return "", errors.New("chalk binary not found in PATH or common locations")
 }
 
-func GetChalkCommand(projectRepository string, args ...string) (*exec.Cmd, error) {
+func GetChalkCommand(ctx context.Context, projectRepository string, args ...string) (*exec.Cmd, error) {
 	if err := validateChalkProject(projectRepository); err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func GetChalkCommand(projectRepository string, args ...string) (*exec.Cmd, error
 		return nil, err
 	}
 
-	cmd := exec.Command(chalkPath, append(args, "--json")...)
+	cmd := exec.CommandContext(ctx, chalkPath, append(args, "--json")...)
 	cmd.Dir = projectRepository
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+homeDir+"/")

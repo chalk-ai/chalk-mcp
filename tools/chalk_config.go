@@ -24,7 +24,7 @@ func ChalkConfigHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.
 		return nil, errors.New("project_repository must be a string")
 	}
 
-	cmd, err := utils.GetChalkCommand(projectRepository, "config")
+	cmd, err := utils.GetChalkCommand(ctx, projectRepository, "config")
 	if err != nil {
 		return nil, errors.Wrap(err, "preparing chalk command")
 	}

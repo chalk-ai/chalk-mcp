@@ -51,7 +51,7 @@ func ChalkEnvironmentHandler(ctx context.Context, request mcp.CallToolRequest) (
 			return nil, errors.New("environment must be a string")
 		}
 
-		cmd, err := utils.GetChalkCommand(projectRepository, "environment", environment)
+		cmd, err := utils.GetChalkCommand(ctx, projectRepository, "environment", environment)
 		if err != nil {
 			return nil, errors.Wrap(err, "preparing chalk command")
 		}
@@ -63,7 +63,7 @@ func ChalkEnvironmentHandler(ctx context.Context, request mcp.CallToolRequest) (
 
 		return mcp.NewToolResultText(string(out)), nil
 	case string(ChalkEnvironmentOperationGet):
-		cmd, err := utils.GetChalkCommand(projectRepository, "environment")
+		cmd, err := utils.GetChalkCommand(ctx, projectRepository, "environment")
 		if err != nil {
 			return nil, errors.Wrap(err, "preparing chalk command")
 		}
