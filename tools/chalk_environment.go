@@ -2,8 +2,8 @@ package tools
 
 import (
 	"context"
+	"reflect"
 
-	"github.com/chalk-ai/chalk-mcp/utils"
 	"github.com/cockroachdb/errors"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -15,66 +15,62 @@ const (
 	ChalkEnvironmentOperationGet ChalkEnvironmentOperation = "get"
 )
 
-func NewChalkEnvironmentTool() mcp.Tool {
-	return mcp.NewTool("chalk_environment",
-		mcp.WithDescription("Set the chalk environment for the current project"),
-		mcp.WithString("project_repository",
-			mcp.Required(),
-			mcp.Description("Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."),
-		),
-		mcp.WithString("operation",
-			mcp.Required(),
-			mcp.Description("The operation to perform on the chalk environment"),
-			mcp.Enum(string(ChalkEnvironmentOperationSet), string(ChalkEnvironmentOperationGet)),
-		),
-		mcp.WithString("environment",
-			mcp.Description("If doing a set operation, the environment to set for the current project. Can be an environment ID or name."),
-		),
-	)
+type ChalkEnvironmentParams struct {
+	ProjectRepository string `json:"project_repository" mcp:"required,description=Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."`
+	Operation         string `json:"operation" mcp:"required,description=The operation to perform on the chalk environment"`
+	Environment       string `json:"environment" mcp:"description=If doing a set operation, the environment to set for the current project. Can be an environment ID or name."`
 }
 
-func ChalkEnvironmentHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	projectRepository, ok := request.Params.Arguments["project_repository"].(string)
+type ChalkEnvironmentTool struct {
+	executor CommandExecutor
+}
+
+func NewChalkEnvironmentTool(executor CommandExecutor) *ChalkEnvironmentTool {
+	if executor == nil {
+		executor = &DefaultCommandExecutor{}
+	}
+	return &ChalkEnvironmentTool{executor: executor}
+}
+
+func (t *ChalkEnvironmentTool) Name() string {
+	return "chalk_environment"
+}
+
+func (t *ChalkEnvironmentTool) Description() string {
+	return "Get or set the chalk environment for the current project"
+}
+
+func (t *ChalkEnvironmentTool) ParamsType() reflect.Type {
+	return reflect.TypeOf(ChalkEnvironmentParams{})
+}
+
+func (t *ChalkEnvironmentTool) Execute(ctx context.Context, args any) (*mcp.CallToolResult, error) {
+	params, ok := args.(*ChalkEnvironmentParams)
 	if !ok {
-		return nil, errors.New("project_repository must be a string")
+		return nil, errors.New("invalid parameter type")
 	}
 
-	operation, ok := request.Params.Arguments["operation"].(string)
-	if !ok {
-		return nil, errors.New("operation must be a string")
-	}
-
-	switch operation {
+	var cmdArgs []string
+	switch params.Operation {
 	case string(ChalkEnvironmentOperationSet):
-		environment, ok := request.Params.Arguments["environment"].(string)
-		if !ok {
-			return nil, errors.New("environment must be a string")
+		if params.Environment == "" {
+			return nil, errors.New("environment must be provided for set operation")
 		}
-
-		cmd, err := utils.GetChalkCommand(projectRepository, "environment", environment)
-		if err != nil {
-			return nil, errors.Wrap(err, "preparing chalk command")
-		}
-
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return nil, errors.Wrapf(err, "running chalk command; stdout: %s", out)
-		}
-
-		return mcp.NewToolResultText(string(out)), nil
+		cmdArgs = []string{"environment", params.Environment}
 	case string(ChalkEnvironmentOperationGet):
-		cmd, err := utils.GetChalkCommand(projectRepository, "environment")
-		if err != nil {
-			return nil, errors.Wrap(err, "preparing chalk command")
-		}
-
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return nil, errors.Wrapf(err, "running chalk command; stdout: %s", out)
-		}
-
-		return mcp.NewToolResultText(string(out)), nil
+		cmdArgs = []string{"environment"}
+	default:
+		return nil, errors.Newf("invalid operation: %s", params.Operation)
 	}
 
-	return nil, errors.Newf("invalid operation: %s", operation)
+	output, err := t.executor.Execute(
+		ctx,
+		params.ProjectRepository,
+		cmdArgs...,
+	)
+	if err != nil {
+		return nil, errors.Wrapf(err, "running chalk command; output: %s", output)
+	}
+
+	return mcp.NewToolResultText(string(output)), nil
 }

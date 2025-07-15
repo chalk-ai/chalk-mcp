@@ -9,16 +9,22 @@ import (
 
 func main() {
 	s := server.NewMCPServer(
-		"Demo 🚀",
+		"Chalk MCP 🚀",
 		"1.0.0",
 	)
 
-	s.AddTool(tools.NewChalkConfigTool(), tools.ChalkConfigHandler)
-	s.AddTool(tools.NewChalkFeaturesTool(), tools.ChalkFeaturesHandler)
-	s.AddTool(tools.NewChalkLogsTool(), tools.ChalkLogsHandler)
-	s.AddTool(tools.NewChalkEnvironmentTool(), tools.ChalkEnvironmentHandler)
-	s.AddTool(tools.NewChalkApplyTool(), tools.ChalkApplyHandler)
-	s.AddTool(tools.NewChalkQueryTool(), tools.ChalkQueryHandler)
+	chalkTools := []tools.Tool{
+		tools.NewChalkConfigTool(nil),
+		tools.NewChalkFeaturesTool(nil),
+		tools.NewChalkEnvironmentTool(nil),
+		tools.NewChalkApplyTool(nil),
+		tools.NewChalkQueryTool(nil),
+		tools.NewChalkLogsTool(nil),
+	}
+
+	for _, tool := range chalkTools {
+		s.AddTool(tools.GenerateMetadata(tool), tools.CreateHandler(tool))
+	}
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("Server error: %v\n", err)

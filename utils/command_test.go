@@ -134,10 +134,10 @@ func TestGetChalkCommand(t *testing.T) {
 
 	projectRepository := tempDir
 	testArg := "my_favorite_arg"
-	cmd, err := GetChalkCommand(projectRepository, testArg)
+	cmd, err := GetChalkCommand(t.Context(), projectRepository, testArg)
 	assert.NoError(t, err)
 
 	out, err := cmd.CombinedOutput()
 	assert.NoError(t, err)
-	assert.Equal(t, testArg+"\n", string(out))
+	assert.Equal(t, testArg+" --json\n", string(out))
 }
