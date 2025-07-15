@@ -2,6 +2,8 @@ package tools
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"reflect"
 
 	"github.com/cockroachdb/errors"
@@ -41,10 +43,19 @@ func (t *ChalkFeaturesTool) Execute(ctx context.Context, args any) (*mcp.CallToo
 		return nil, errors.New("invalid parameter type")
 	}
 
+	tmpDir, err := os.MkdirTemp("", "chalk-features-*")
+	if err != nil {
+		return nil, errors.Wrapf(err, "creating temporary directory")
+	}
+	defer os.RemoveAll(tmpDir)
+	featuresFile := filepath.Join(tmpDir, "features.json")
+
+	cmdArgs := []string{"features", "--out", featuresFile}
+
 	output, err := t.executor.Execute(
 		ctx,
 		params.ProjectRepository,
-		"features",
+		cmdArgs...,
 	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "running chalk command; output: %s", output)

@@ -42,12 +42,12 @@ func (t *ChalkLogsTool) Execute(ctx context.Context, args any) (*mcp.CallToolRes
 		return nil, errors.New("invalid parameter type")
 	}
 
+	cmdArgs := []string{"logs", "--query", params.Query}
+
 	output, err := t.executor.Execute(
 		ctx,
 		params.ProjectRepository,
-		"logs",
-		"--query",
-		params.Query,
+		cmdArgs...,
 	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "running chalk command; output: %s", output)

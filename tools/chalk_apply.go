@@ -42,9 +42,7 @@ func (t *ChalkApplyTool) Execute(ctx context.Context, args any) (*mcp.CallToolRe
 		return nil, errors.New("invalid parameter type")
 	}
 
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "apply")
-	
+	cmdArgs := []string{"apply"}
 	if params.BranchName != "" {
 		cmdArgs = append(cmdArgs, "--branch="+params.BranchName)
 	} else {

@@ -123,6 +123,8 @@ func TestChalkQueryTool_Execute(t *testing.T) {
 				BranchName:     "feature-branch",
 			},
 			expectedArgs: []string{
+				"query",
+				"--grpc",
 				"--in", "user.id=123",
 				"--in", "user.age=25",
 				"--out", "user.name",
@@ -139,6 +141,8 @@ func TestChalkQueryTool_Execute(t *testing.T) {
 				BranchName:        "main",
 			},
 			expectedArgs: []string{
+				"query",
+				"--grpc",
 				"--out", "user.name",
 				"--branch=main",
 			},
@@ -154,6 +158,8 @@ func TestChalkQueryTool_Execute(t *testing.T) {
 				OutputFeatures: []string{"user.email"},
 			},
 			expectedArgs: []string{
+				"query",
+				"--grpc",
 				"--in", "user.id=456",
 				"--out", "user.email",
 			},
@@ -175,7 +181,8 @@ func TestChalkQueryTool_Execute(t *testing.T) {
 			mockExecutor.AssertCalled(t, "Execute", mock.Anything, tt.params.ProjectRepository, mock.Anything)
 			assert.Len(t, mockExecutor.Calls, 1)
 			actualArgs := mockExecutor.Calls[0].Arguments[2].([]string)
-			assert.ElementsMatch(t, append([]string{"query", "--grpc"}, tt.expectedArgs...), actualArgs)
+			// elements match since order is not guaranteed for input features
+			assert.ElementsMatch(t, tt.expectedArgs, actualArgs)
 		})
 	}
 }

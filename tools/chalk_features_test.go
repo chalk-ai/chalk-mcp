@@ -2,6 +2,7 @@ package tools
 
 import (
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -83,7 +84,7 @@ func TestChalkFeaturesTool_Execute(t *testing.T) {
 			params: &ChalkFeaturesParams{
 				ProjectRepository: "/path/to/project",
 			},
-			expectedArgs: []string{"features"},
+			expectedArgs: []string{"features", "--out", ".*/chalk-features-.*/features.json"},
 			expectedOut:  "feature1\nfeature2\nfeature3",
 		},
 		{
@@ -91,7 +92,7 @@ func TestChalkFeaturesTool_Execute(t *testing.T) {
 			params: &ChalkFeaturesParams{
 				ProjectRepository: "/another/path",
 			},
-			expectedArgs: []string{"features"},
+			expectedArgs: []string{"features", "--out", ".*/chalk-features-.*/features.json"},
 			expectedOut:  "user.id\nuser.name\nuser.email",
 		},
 		{
@@ -99,7 +100,7 @@ func TestChalkFeaturesTool_Execute(t *testing.T) {
 			params: &ChalkFeaturesParams{
 				ProjectRepository: "/path/with spaces/project",
 			},
-			expectedArgs: []string{"features"},
+			expectedArgs: []string{"features", "--out", ".*/chalk-features-.*/features.json"},
 			expectedOut:  "special.feature1\nspecial.feature2",
 		},
 	}
@@ -118,7 +119,11 @@ func TestChalkFeaturesTool_Execute(t *testing.T) {
 			mockExecutor.AssertCalled(t, "Execute", mock.Anything, tt.params.ProjectRepository, mock.Anything)
 			assert.Len(t, mockExecutor.Calls, 1)
 			actualArgs := mockExecutor.Calls[0].Arguments[2].([]string)
-			assert.Equal(t, tt.expectedArgs, actualArgs)
+			// need to do regex match for randomness of the output file
+			assert.Equal(t, len(tt.expectedArgs), len(actualArgs))
+			for i, arg := range tt.expectedArgs {
+				assert.Regexp(t, regexp.MustCompile(arg), actualArgs[i])
+			}
 		})
 	}
 }
