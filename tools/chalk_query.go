@@ -12,7 +12,7 @@ import (
 type ChalkQueryParams struct {
 	ProjectRepository string            `json:"project_repository" mcp:"required,description=Path to the root of the Chalk project on disk. Should contain a chalk.yml or chalk.yaml file."`
 	InputFeatures     map[string]string `json:"input_features" mcp:"description=Map of fully qualified feature names (FQNs) to their values for the query. Each key-value pair becomes --in {key}={value}."`
-	OutputFeatures    []string          `json:"output_features" mcp:"description=List of fully qualified feature names (FQNs) to use as outputs for the query."`
+	OutputFeatures    []string          `json:"output_features" mcp:"required,description=List of fully qualified feature names (FQNs) to use as outputs for the query."`
 	BranchName        string            `json:"branch_name" mcp:"description=Name of the branch to query against. If not provided, uses the mainline deployment."`
 }
 

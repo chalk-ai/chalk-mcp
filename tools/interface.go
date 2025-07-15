@@ -73,6 +73,42 @@ var (
 	fieldInfoMutex = sync.Mutex{}
 )
 
+// Assumption: `description` is the last tag since it can contain commas
+func parseMCPTags(tag string) map[string]string {
+	tags := make(map[string]string)
+	if tag == "" {
+		return tags
+	}
+
+	beforeDesc := tag
+	descIndex := strings.Index(tag, "description=")
+	if descIndex != -1 {
+		beforeDesc = strings.TrimSuffix(tag[:descIndex], ",")
+		desc := tag[descIndex+len("description="):]
+		tags["description"] = desc
+	}
+
+	parts := strings.Split(beforeDesc, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		if strings.Contains(part, "=") {
+			kv := strings.SplitN(part, "=", 2)
+			if len(kv) == 2 {
+				tags[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+			}
+		} else {
+			// Simple flag like "required"
+			tags[part] = "true"
+		}
+	}
+
+	return tags
+}
+
 func parseFieldInfo(field reflect.StructField) fieldInfo {
 	mcpTag := field.Tag.Get("mcp")
 	if mcpTag == "-" { // Skip this field
@@ -168,69 +204,6 @@ func GenerateMetadata(tool Tool) mcp.Tool {
 	}
 
 	return mcp.NewTool(tool.Name(), toolOptions...)
-}
-
-// Assumption: `description` is the last tag since it can contain commas
-func parseMCPTags(tag string) map[string]string {
-	tags := make(map[string]string)
-	if tag == "" {
-		return tags
-	}
-
-	beforeDesc := tag
-	descIndex := strings.Index(tag, "description=")
-	if descIndex != -1 {
-		beforeDesc = strings.TrimSuffix(tag[:descIndex], ",")
-		desc := tag[descIndex+len("description="):]
-		tags["description"] = desc
-	}
-
-	parts := strings.Split(beforeDesc, ",")
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		if strings.Contains(part, "=") {
-			kv := strings.SplitN(part, "=", 2)
-			if len(kv) == 2 {
-				tags[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
-			}
-		} else {
-			// Simple flag like "required"
-			tags[part] = "true"
-		}
-	}
-
-	return tags
-}
-
-func parseParams(paramsType reflect.Type, args map[string]any) (any, error) {
-	params := reflect.New(paramsType).Interface()
-	paramsValue := reflect.ValueOf(params).Elem()
-
-	fieldInfos := getFieldInfos(paramsType)
-	for _, info := range fieldInfos {
-		if info.shouldSkip {
-			continue
-		}
-
-		value, exists := args[info.fieldName]
-		if !exists {
-			if info.tags["required"] == "true" {
-				return nil, errors.Newf("%s is required", info.fieldName)
-			}
-			continue
-		}
-
-		fieldValue := paramsValue.FieldByName(info.field.Name)
-		if err := setFieldValue(fieldValue, value); err != nil {
-			return nil, errors.Wrapf(err, "error setting %s", info.fieldName)
-		}
-	}
-
-	return params, nil
 }
 
 func toStringValue(v any) string {
@@ -345,6 +318,33 @@ func setFieldValue(field reflect.Value, value any) error {
 	}
 
 	return nil
+}
+
+func parseParams(paramsType reflect.Type, args map[string]any) (any, error) {
+	params := reflect.New(paramsType).Interface()
+	paramsValue := reflect.ValueOf(params).Elem()
+
+	fieldInfos := getFieldInfos(paramsType)
+	for _, info := range fieldInfos {
+		if info.shouldSkip {
+			continue
+		}
+
+		value, exists := args[info.fieldName]
+		if !exists {
+			if info.tags["required"] == "true" {
+				return nil, errors.Newf("%s is required", info.fieldName)
+			}
+			continue
+		}
+
+		fieldValue := paramsValue.FieldByName(info.field.Name)
+		if err := setFieldValue(fieldValue, value); err != nil {
+			return nil, errors.Wrapf(err, "error setting %s", info.fieldName)
+		}
+	}
+
+	return params, nil
 }
 
 func CreateHandler(tool Tool) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
