@@ -20,6 +20,7 @@ func main() {
 		tools.NewChalkApplyTool(nil),
 		tools.NewChalkQueryTool(nil),
 		tools.NewChalkLogsTool(nil),
+		tools.NewChalkLintTool(nil),
 	}
 
 	for _, tool := range chalkTools {
